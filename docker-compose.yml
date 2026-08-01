@@ -1,0 +1,16 @@
+# Replace APP_NAME with your app name (e.g. todo, notes) in this file and in the infrastructure Caddyfile
+services:
+  APP_NAME-backend:
+    image: ghcr.io/waynezhu6/APP_NAME-backend:latest
+    container_name: APP_NAME-backend
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - caddy-web
+      - postgres-db
+
+networks:
+  caddy-web:
+    external: true
+  postgres-db:
+    external: true
