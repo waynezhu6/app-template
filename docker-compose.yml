@@ -1,8 +1,10 @@
-# Replace APP_NAME with your app name (e.g. todo, notes) in this file and in the infrastructure Caddyfile
+# APP and IMAGE_OWNER come from .env, which the deploy workflow writes from the
+# repo name and owner. Nothing in this file needs editing for a new app.
+# Caddy reaches the backend by its container name, <app>-backend.
 services:
-  APP_NAME-backend:
-    image: ghcr.io/waynezhu6/APP_NAME-backend:latest
-    container_name: APP_NAME-backend
+  backend:
+    image: ghcr.io/${IMAGE_OWNER}/${APP}-backend:latest
+    container_name: ${APP}-backend
     restart: unless-stopped
     env_file: .env
     networks:

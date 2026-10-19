@@ -1,15 +1,17 @@
-import { Pool } from "pg";
-import runner from "node-pg-migrate";
+import pg from "pg";
+import { runner } from "node-pg-migrate";
 import { join } from "path";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
-runner({
-  databaseUrl: process.env.DATABASE_URL!,
-  dir: join(__dirname, "../migrations"),
-  direction: "up",
-  migrationsTable: "pgmigrations",
-  log: () => {},
-}).catch(console.error);
+export async function migrate() {
+  await runner({
+    databaseUrl: process.env.DATABASE_URL!,
+    dir: join(import.meta.dirname, "../migrations"),
+    direction: "up",
+    migrationsTable: "pgmigrations",
+    log: () => {},
+  });
+}
 
 export default pool;
