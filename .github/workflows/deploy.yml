@@ -45,6 +45,18 @@ jobs:
           file: backend/Dockerfile
           push: true
           tags: ghcr.io/${{ env.IMAGE_OWNER }}/${{ env.APP }}-backend:latest
+          # One manifest per push, so each pruned version below is a whole
+          # image rather than a provenance attachment of the current one.
+          provenance: false
+
+      # Every push moves :latest and leaves the previous image untagged.
+      # Keep the newest few for rollbacks and delete the rest.
+      - name: Prune old backend images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ env.APP }}-backend
+          package-type: container
+          min-versions-to-keep: 5
 
       - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -74,7 +86,8 @@ jobs:
           ssh "$TARGET" "set -e; cd ~/$APP; chmod 600 .env
             ~/infrastructure/scripts/app-env.sh $APP >> .env
             docker compose pull
-            docker compose up -d --remove-orphans"
+            docker compose up -d --remove-orphans
+            docker image prune -f"
 
   deploy-frontend:
     if: ${{ !github.event.repository.is_template }}
