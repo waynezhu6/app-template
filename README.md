@@ -10,24 +10,23 @@ Starter template for a full-stack app on my personal VPS. React + Vite frontend,
 
 ## Using this template
 
-**1. Create a new repo from this template** on GitHub. The repo name becomes the app name everywhere: the server directory `~/<name>`, the container `<name>-backend`, the image `ghcr.io/<owner>/<name>-backend` and the frontend folder `sites/<name>`. Nothing in the files needs renaming.
+**1. Create a new repo from this template** on GitHub. The repo name becomes the app name everywhere: the server directory `~/<name>`, the container `<name>-backend`, the image `ghcr.io/<owner>/<name>-backend`, the frontend folder `sites/<name>` and the database. Nothing in the files needs renaming. Use lowercase letters, digits and dashes.
 
-**2. Add a Caddyfile block** to the infrastructure repo's `Caddyfile` by PR. Copy `Caddyfile` from this repo and replace `APP_NAME` with the repo name and the domain with yours. Don't edit the Caddyfile on the server directly; the infrastructure deploy pulls over it.
+**2. Register the app** in the [infrastructure](https://github.com/waynezhu6/infrastructure) repo: Actions → Register app, with the repo name and domain. Merge the PR it opens. That routes the domain to this app and creates its database; see "Adding a New Project" there. Point the domain's DNS at the server.
 
-**3. Create the app's database and user** on the server (see "Adding a New Project" in the infrastructure README).
-
-**4. Set GitHub Actions secrets:**
+**3. Set GitHub Actions secrets:**
 
 | Secret | Description |
 |---|---|
-| `DATABASE_URL` | `postgres://<user>:<password>@postgres:5432/<db>`. The host is `postgres`, the shared container's name on the `postgres-db` network, not `localhost`. |
 | `SERVER_HOST` | VPS IP or hostname |
 | `SERVER_USER` | SSH user on the server |
 | `SSH_DEPLOY_KEY` | Private SSH key (same one used by the infrastructure repo) |
 
-The server pulls the backend image using the GHCR login that the infrastructure repo's `bootstrap.sh --ghcr-user` sets up, so this repo needs no registry credentials.
+There's no database secret: the deploy reads `DATABASE_URL` from the server, which created it at registration. It fails with a clear message if the app isn't registered yet.
 
-Push to `main` and CI handles the rest. It never clones this repo onto the server; it copies `docker-compose.yml` and writes `.env` there.
+Push to `main` and CI handles the rest. It never clones this repo onto the server; it copies `docker-compose.yml`, writes `.env`, and starts the container.
+
+This template repo itself doesn't deploy (the jobs skip when the repo is a template), so changes to it don't need server secrets.
 
 ## Local dev
 

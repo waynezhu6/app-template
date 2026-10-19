@@ -15,8 +15,10 @@ env:
   APP: ${{ github.event.repository.name }}
   IMAGE_OWNER: ${{ github.repository_owner }}
 
+# The template repo itself has no server to deploy to; only copies of it deploy.
 jobs:
   deploy-backend:
+    if: ${{ !github.event.repository.is_template }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -53,21 +55,29 @@ jobs:
         run: ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
       # The server never clones this repo: it only needs the compose file and
-      # .env. Pulling the image relies on the GHCR login bootstrap.sh sets up.
+      # .env. DATABASE_URL comes from the server (the infrastructure repo
+      # creates it when the app is registered), and pulling the image relies on
+      # the GHCR login bootstrap.sh sets up.
       - name: Deploy backend on server
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           TARGET: ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
         run: |
           umask 077
-          printf 'APP=%s\nIMAGE_OWNER=%s\nDATABASE_URL=%s\nNODE_ENV=production\nPORT=3001\n' \
-            "$APP" "$IMAGE_OWNER" "$DATABASE_URL" > deploy.env
+          printf 'APP=%s\nIMAGE_OWNER=%s\nNODE_ENV=production\nPORT=3001\n' \
+            "$APP" "$IMAGE_OWNER" > deploy.env
+          # $APP expands here on the runner, on purpose.
+          # shellcheck disable=SC2029
           ssh "$TARGET" "mkdir -p ~/$APP"
           scp docker-compose.yml "$TARGET:~/$APP/docker-compose.yml"
           scp deploy.env "$TARGET:~/$APP/.env"
-          ssh "$TARGET" "set -e; cd ~/$APP; chmod 600 .env; docker compose pull; docker compose up -d --remove-orphans"
+          # shellcheck disable=SC2029
+          ssh "$TARGET" "set -e; cd ~/$APP; chmod 600 .env
+            ~/infrastructure/scripts/app-env.sh $APP >> .env
+            docker compose pull
+            docker compose up -d --remove-orphans"
 
   deploy-frontend:
+    if: ${{ !github.event.repository.is_template }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,5 +108,6 @@ jobs:
         env:
           TARGET: ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
         run: |
+          # shellcheck disable=SC2029
           ssh "$TARGET" "mkdir -p ~/infrastructure/sites/$APP"
           rsync -az --delete frontend/dist/ "$TARGET:~/infrastructure/sites/$APP/"
