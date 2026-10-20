@@ -10,23 +10,13 @@ Starter template for a full-stack app on my personal VPS. React + Vite frontend,
 
 ## Using this template
 
-**1. Create a new repo from this template** on GitHub. The repo name becomes the app name everywhere: the server directory `~/<name>`, the container `<name>-backend`, the image `ghcr.io/<owner>/<name>-backend`, the frontend folder `sites/<name>` and the database. Nothing in the files needs renaming. Use lowercase letters, digits and dashes.
+**1. Create a new repo from this template** on GitHub. The repo name becomes the app name everywhere: the container `<name>-backend`, the image `ghcr.io/<owner>/<name>-backend`, the frontend folder `sites/<name>` and the database. Nothing in the files needs renaming. Use lowercase letters, digits and dashes.
 
 **2. Register the app** in the [infrastructure](https://github.com/waynezhu6/infrastructure) repo: Actions → Register app, with the repo name. Merge the PR it opens. That serves the app at `/apps/<name>/` (frontend) and `/api/<name>/` (backend) on the server's domain and creates its database; see "Adding a New Project" there, which also covers app-specific secrets.
 
-**3. Set GitHub Actions secrets:**
+**3. Push to `main`.** There are no secrets to set. CI builds one image with the backend and the built frontend, pushes it to GHCR, and asks the server's deployer to run it (infrastructure's `actions/deploy`). The deploy step proves which repo it is with a GitHub OIDC token, so the server only lets this repo deploy this app. Its output, including the backend's health check, streams into the Actions log, and a failed health check rolls back to the previous version. `DATABASE_URL` and any app secrets come from the server; the deploy fails with a clear message if the app isn't registered yet.
 
-| Secret | Description |
-|---|---|
-| `SERVER_HOST` | VPS IP or hostname |
-| `SERVER_USER` | SSH user on the server |
-| `SSH_DEPLOY_KEY` | Private SSH key (same one used by the infrastructure repo) |
-
-There's no database secret: the deploy reads `DATABASE_URL` from the server, which created it at registration. It fails with a clear message if the app isn't registered yet.
-
-Push to `main` and CI handles the rest. It never clones this repo onto the server; it copies `docker-compose.yml`, writes `.env`, and starts the container.
-
-This template repo itself doesn't deploy (the jobs skip when the repo is a template), so changes to it don't need server secrets.
+This template repo itself doesn't deploy (the job skips when the repo is a template).
 
 ## Local dev
 
