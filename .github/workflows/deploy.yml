@@ -9,6 +9,9 @@ concurrency:
   group: deploy
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 env:
   # GHCR names must be lowercase. APP is also the server directory, the
   # container name (<app>-backend) and the sites/<app> folder Caddy serves.
@@ -32,14 +35,14 @@ jobs:
           echo "IMAGE_OWNER=${IMAGE_OWNER,,}" >> "$GITHUB_ENV"
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           file: backend/Dockerfile
@@ -59,7 +62,7 @@ jobs:
           min-versions-to-keep: 5
 
       - name: Setup SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_DEPLOY_KEY }}
 
@@ -110,7 +113,7 @@ jobs:
         run: npm run build --workspace=frontend
 
       - name: Setup SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_DEPLOY_KEY }}
 

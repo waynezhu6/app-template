@@ -18,5 +18,7 @@ COPY --from=builder /app/backend/dist backend/dist
 COPY --from=builder /app/backend/migrations backend/migrations
 WORKDIR /app/backend
 ENV NODE_ENV=production
+# The app only reads its files, so it doesn't need root.
+USER node
 EXPOSE 3001
 CMD ["node", "dist/index.js"]

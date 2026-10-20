@@ -3,6 +3,7 @@ import cors from "cors";
 import { migrate } from "./db.js";
 
 const app = express();
+app.disable("x-powered-by");
 const PORT = process.env.PORT ?? 3001;
 
 app.use(cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173" }));
