@@ -13,19 +13,22 @@ permissions:
   contents: read
 
 env:
-  # GHCR names must be lowercase. APP is also the server directory, the
-  # container name (<app>-backend) and the sites/<app> folder Caddy serves.
+  # GHCR names must be lowercase. APP is also the app's name on the server:
+  # its path waynezhu.dev/apps/<app>/, its container and its database.
   APP: ${{ github.event.repository.name }}
   IMAGE_OWNER: ${{ github.repository_owner }}
 
 # The template repo itself has no server to deploy to; only copies of it deploy.
 jobs:
-  deploy-backend:
+  deploy:
     if: ${{ !github.event.repository.is_template }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      # Lets the deploy step prove to the server which repo it is, so this
+      # repo needs no deploy secrets.
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -41,11 +44,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push backend image
+      # One image holds the backend and the built frontend.
+      - name: Build and push image
+        id: build
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           file: backend/Dockerfile
+          build-args: APP=${{ env.APP }}
           push: true
           tags: ghcr.io/${{ env.IMAGE_OWNER }}/${{ env.APP }}-backend:latest
           # One manifest per push, so each pruned version below is a whole
@@ -54,77 +60,17 @@ jobs:
 
       # Every push moves :latest and leaves the previous image untagged.
       # Keep the newest few for rollbacks and delete the rest.
-      - name: Prune old backend images
+      - name: Prune old images
         uses: actions/delete-package-versions@v5
         with:
           package-name: ${{ env.APP }}-backend
           package-type: container
           min-versions-to-keep: 5
 
-      - name: Setup SSH agent
-        uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
+      # The server pulls this exact image, starts it, checks /api/health and
+      # publishes the frontend, rolling back if the health check fails. Its
+      # output streams into this step.
+      - name: Deploy
+        uses: waynezhu6/infrastructure/actions/deploy@main
         with:
-          ssh-private-key: ${{ secrets.SSH_DEPLOY_KEY }}
-
-      - name: Add server to known hosts
-        run: ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-
-      # The server never clones this repo: it only needs the compose file and
-      # .env. DATABASE_URL comes from the server (the infrastructure repo
-      # creates it when the app is registered), and pulling the image relies on
-      # the GHCR login bootstrap.sh sets up.
-      - name: Deploy backend on server
-        env:
-          TARGET: ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
-        run: |
-          umask 077
-          printf 'APP=%s\nIMAGE_OWNER=%s\nNODE_ENV=production\nPORT=3001\n' \
-            "$APP" "$IMAGE_OWNER" > deploy.env
-          # $APP expands here on the runner, on purpose.
-          # shellcheck disable=SC2029
-          ssh "$TARGET" "mkdir -p ~/$APP"
-          scp docker-compose.yml "$TARGET:~/$APP/docker-compose.yml"
-          scp deploy.env "$TARGET:~/$APP/.env"
-          # shellcheck disable=SC2029
-          ssh "$TARGET" "set -e; cd ~/$APP; chmod 600 .env
-            ~/infrastructure/scripts/app-env.sh $APP >> .env
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker image prune -f"
-
-  deploy-frontend:
-    if: ${{ !github.event.repository.is_template }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Normalize names
-        run: echo "APP=${APP,,}" >> "$GITHUB_ENV"
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version-file: .nvmrc
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      # vite.config.ts reads APP to build for waynezhu.dev/apps/<app>/.
-      - name: Build frontend
-        run: npm run build --workspace=frontend
-
-      - name: Setup SSH agent
-        uses: webfactory/ssh-agent@dc588b651fe13675774614f8e6a936a468676387 # v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.SSH_DEPLOY_KEY }}
-
-      - name: Add server to known hosts
-        run: ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
-
-      - name: Sync frontend to server
-        env:
-          TARGET: ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}
-        run: |
-          # shellcheck disable=SC2029
-          ssh "$TARGET" "mkdir -p ~/infrastructure/sites/$APP"
-          rsync -az --delete frontend/dist/ "$TARGET:~/infrastructure/sites/$APP/"
+          digest: ${{ steps.build.outputs.digest }}
