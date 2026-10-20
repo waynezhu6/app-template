@@ -12,7 +12,7 @@ Starter template for a full-stack app on my personal VPS. React + Vite frontend,
 
 **1. Create a new repo from this template** on GitHub. The repo name becomes the app name everywhere: the server directory `~/<name>`, the container `<name>-backend`, the image `ghcr.io/<owner>/<name>-backend`, the frontend folder `sites/<name>` and the database. Nothing in the files needs renaming. Use lowercase letters, digits and dashes.
 
-**2. Register the app** in the [infrastructure](https://github.com/waynezhu6/infrastructure) repo: Actions → Register app, with the repo name (the domain defaults to a subdomain set there). Merge the PR it opens. That routes the domain to this app and creates its database; see "Adding a New Project" there, which also covers DNS and app-specific secrets.
+**2. Register the app** in the [infrastructure](https://github.com/waynezhu6/infrastructure) repo: Actions → Register app, with the repo name. Merge the PR it opens. That serves the app at `/apps/<name>/` (frontend) and `/api/<name>/` (backend) on the server's domain and creates its database; see "Adding a New Project" there, which also covers app-specific secrets.
 
 **3. Set GitHub Actions secrets:**
 
@@ -34,10 +34,17 @@ This template repo itself doesn't deploy (the jobs skip when the repo is a templ
 npm install
 docker compose -f docker-compose.dev.yml up -d   # local Postgres on 5432
 cp backend/.env.example backend/.env
-npm run dev                                      # frontend (5173) and backend (3001)
+npm run dev                                      # http://localhost:5173/apps/<name>/, backend on 3001
 ```
 
-Frontend proxies `/api` to the backend in dev, matching production behavior.
+Dev uses the production paths: the frontend is at `/apps/<name>/` and proxies `/api/<name>/...` to the backend as `/api/...`, as Caddy does. `<name>` is the checkout's folder name locally and the repo name in CI.
+
+## Paths
+
+The app is served under a prefix, so never hardcode `/` or `/api` URLs:
+
+- Frontend: call the backend with `api('/things')` or `apiUrl('/things')` from `frontend/src/api.ts`. Assets and imports are handled by Vite's `base`.
+- Backend: routes stay under `/api/*` (Caddy strips the prefix). For URLs the backend sends to the browser (redirects, links, cookie paths), use `API_BASE` and `APP_BASE` from `backend/src/paths.ts`. Set cookies with `path: API_BASE` so they only go to this app's backend; all apps share one domain.
 
 ## Database migrations
 

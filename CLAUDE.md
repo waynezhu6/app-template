@@ -7,17 +7,18 @@ Starter for a service on Wayne's VPS: React + Vite frontend, Express + Postgres 
 When asked to start a new service from this template:
 
 1. Create the new repo from this template (GitHub "Use this template"), named with lowercase letters, digits and dashes. The repo name is the app name everywhere; nothing in the files needs renaming.
-2. Register it in the infrastructure repo in the same go: on a branch there, run `scripts/register-app.sh <name>` and open a PR with the new `apps/<name>.caddy`. Leave the domain off to get infrastructure's default subdomain; pass one only if the user asked for a specific domain. Tell the user to merge it.
+2. Register it in the infrastructure repo in the same go: on a branch there, run `scripts/register-app.sh <name>` and open a PR with the new `apps/<name>.caddy`. Tell the user to merge it. The app is then live at `waynezhu.dev/apps/<name>/`; there's no DNS step.
 3. Remind the user to set `SERVER_HOST`, `SERVER_USER` and `SSH_DEPLOY_KEY` on the new repo. There is no `DATABASE_URL` secret. App-specific secrets (API keys) go on the server, as infrastructure's README describes, never in the repo.
 4. Then build the app in the new repo.
 
 ## Conventions
 
-- Backend is ESM TypeScript (`backend/src`, imports end in `.js`). Routes go under `/api/*`; Caddy sends everything else to the frontend.
+- Backend is ESM TypeScript (`backend/src`, imports end in `.js`). Routes go under `/api/*`.
+- The app lives under a path prefix: frontend at `/apps/<name>/`, backend at `/api/<name>/` (Caddy strips it, so Express still sees `/api/...`). Never hardcode `/` or `/api` URLs: the frontend calls the backend via `api()`/`apiUrl()` in `frontend/src/api.ts`, and the backend uses `API_BASE`/`APP_BASE` from `backend/src/paths.ts` for redirects, links and cookie paths. Cookies use `path: API_BASE`, because all apps share one domain.
 - The backend listens on port 3001 and must keep the `/api/health` route.
 - Schema changes are migrations: `cd backend && npm run migrate:create -- <name>` (ES modules in `backend/migrations`). They run on startup before the server listens; never edit one that has shipped.
 - Database access goes through the pool in `backend/src/db.ts`; config comes from `DATABASE_URL` only.
-- Local dev: `docker compose -f docker-compose.dev.yml up -d`, `cp backend/.env.example backend/.env`, `npm run dev`.
+- Local dev: `docker compose -f docker-compose.dev.yml up -d`, `cp backend/.env.example backend/.env`, `npm run dev`, then open `http://localhost:5173/apps/<folder-name>/`.
 - After adding or upgrading a package, commit the updated root `package-lock.json`; CI and the Docker build use `npm ci`.
 
 ## Don't change without a reason
