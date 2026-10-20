@@ -12,7 +12,7 @@ Starter template for a full-stack app on my personal VPS. React + Vite frontend,
 
 **1. Create a new repo from this template** on GitHub. The repo name becomes the app name everywhere: the server directory `~/<name>`, the container `<name>-backend`, the image `ghcr.io/<owner>/<name>-backend`, the frontend folder `sites/<name>` and the database. Nothing in the files needs renaming. Use lowercase letters, digits and dashes.
 
-**2. Register the app** in the [infrastructure](https://github.com/waynezhu6/infrastructure) repo: Actions → Register app, with the repo name and domain. Merge the PR it opens. That routes the domain to this app and creates its database; see "Adding a New Project" there. Point the domain's DNS at the server.
+**2. Register the app** in the [infrastructure](https://github.com/waynezhu6/infrastructure) repo: Actions → Register app, with the repo name (the domain defaults to a subdomain set there). Merge the PR it opens. That routes the domain to this app and creates its database; see "Adding a New Project" there, which also covers DNS and app-specific secrets.
 
 **3. Set GitHub Actions secrets:**
 
