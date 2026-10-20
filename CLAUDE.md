@@ -7,8 +7,8 @@ Starter for a service on Wayne's VPS: React + Vite frontend, Express + Postgres 
 When asked to start a new service from this template:
 
 1. Create the new repo from this template (GitHub "Use this template"), named with lowercase letters, digits and dashes. The repo name is the app name everywhere; nothing in the files needs renaming.
-2. Register it in the infrastructure repo in the same go: on a branch there, run `scripts/register-app.sh <name> <domain>` and open a PR with the new `apps/<name>.caddy`. Ask for the domain if you weren't given one. Tell the user to merge it and point DNS at the server.
-3. Remind the user to set `SERVER_HOST`, `SERVER_USER` and `SSH_DEPLOY_KEY` on the new repo. There is no `DATABASE_URL` secret.
+2. Register it in the infrastructure repo in the same go: on a branch there, run `scripts/register-app.sh <name>` and open a PR with the new `apps/<name>.caddy`. Leave the domain off to get infrastructure's default subdomain; pass one only if the user asked for a specific domain. Tell the user to merge it.
+3. Remind the user to set `SERVER_HOST`, `SERVER_USER` and `SSH_DEPLOY_KEY` on the new repo. There is no `DATABASE_URL` secret. App-specific secrets (API keys) go on the server, as infrastructure's README describes, never in the repo.
 4. Then build the app in the new repo.
 
 ## Conventions
