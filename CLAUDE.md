@@ -8,7 +8,7 @@ When asked to start a new service from this template:
 
 1. Create the new repo from this template (GitHub "Use this template"), named with lowercase letters, digits and dashes. The repo name is the app name everywhere; nothing in the files needs renaming.
 2. Register it in the infrastructure repo in the same go: on a branch there, run `scripts/register-app.sh <name>` and open a PR with the new `apps/<name>.caddy`. Tell the user to merge it. The app is then live at `waynezhu.dev/apps/<name>/`; there's no DNS step.
-3. The new repo needs no secrets: it deploys through infrastructure's deployer with a GitHub OIDC token. App-specific secrets (API keys) go in the repo's Actions secrets, which the deploy passes to the backend as environment variables; never in the repo's files.
+3. The new repo needs no secrets: it deploys through infrastructure's deployer with a GitHub OIDC token. App-specific secrets (API keys) go in the repo's Actions secrets, listed by name under `env` in the Deploy step of `deploy.yml` (never `toJSON(secrets)`, which GitHub holds as possibly malicious); never in the repo's files.
 4. Then build the app in the new repo.
 
 ## Conventions
