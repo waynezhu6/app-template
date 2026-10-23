@@ -54,4 +54,6 @@ npm run migrate:down
 
 The `migrate:*` commands read `DATABASE_URL` from your shell, e.g. `export $(cat .env)` first.
 
-Migrations run automatically on backend startup, before it takes requests. If one fails the backend exits, so a broken migration shows up as a restarting container rather than an app running on the old schema.
+Migrations run automatically on backend startup, before it takes requests. If one fails the backend exits, so the deploy fails its health check and the previous version keeps serving.
+
+Deploys don't stop the app: the new version starts and migrates while the old one still serves, then takes over. So a migration must leave the schema usable by the previous version: add tables and columns freely, but drop or rename one only in a later deploy, once no shipped code uses it.
