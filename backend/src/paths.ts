@@ -5,7 +5,8 @@ import { basename, resolve } from "path";
 // URLs the backend hands to the browser: redirects, links, cookie paths.
 // APP is baked into the image (backend/Dockerfile); locally it's the checkout's folder name,
 // matching the frontend's vite.config.ts.
-const APP = (process.env.APP ?? basename(resolve(import.meta.dirname, "../.."))).toLowerCase();
+/** The app's name: its repo name. */
+export const APP = (process.env.APP ?? basename(resolve(import.meta.dirname, "../.."))).toLowerCase();
 
 /** e.g. /api/notes. Cookies should use this as their path. */
 export const API_BASE = `/api/${APP}`;

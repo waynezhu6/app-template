@@ -62,6 +62,8 @@ if (res.status === 401) location.assign(loginUrl())
 
 `currentUser(req)` returns the user or `null`, for routes that work either way. Locally there's no auth service: `AUTH_DEV_USER` in `backend/.env` signs you in as that name, and removing it signs you out. Accounts are invite-only; see auth's README.
 
+Callers that can't sign in, like a script or an iOS Shortcut, use an API key: make one for this app on auth's admin page and send it as `Authorization: Bearer wz_…`. `requireUser` accepts it the same way, and `res.locals.user.key` holds the key's name (it's unset for a signed-in browser). A key made for another app is refused.
+
 ## Database migrations
 
 ```bash
