@@ -6,3 +6,7 @@
 # Its own Postgres database and role; the backend gets DATABASE_URL.
 # Set to false (and drop backend/src/db.ts and migrations) for an app without one.
 postgres: true
+
+# Uptime alerts: the server's monitor checks /api/health every minute and
+# reports to healthchecks.io. On by default; uncomment to leave this app out.
+# monitor: false
