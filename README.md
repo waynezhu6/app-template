@@ -38,6 +38,30 @@ The app is served under a prefix, so never hardcode `/` or `/api` URLs:
 - Frontend: call the backend with `api('/things')` or `apiUrl('/things')` from `frontend/src/api.ts`. Assets and imports are handled by Vite's `base`.
 - Backend: routes stay under `/api/*` (Caddy strips the prefix). For URLs the backend sends to the browser (redirects, links, cookie paths), use `API_BASE` and `APP_BASE` from `backend/src/paths.ts`. Set cookies with `path: API_BASE` so they only go to this app's backend; all apps share one domain.
 
+## Sign-in
+
+Apps share one passkey sign-in, the [auth](https://github.com/waynezhu6/auth) service at `/apps/auth/`. Its session cookie reaches every app's backend, and `backend/src/auth.ts` asks the service who it belongs to:
+
+```ts
+import { requireUser } from "./auth.js";
+
+app.get("/api/notes", requireUser, async (_req, res) => {
+  const { id, name } = res.locals.user; // key data on id
+  // ...
+});
+```
+
+`requireUser` answers 401 when nobody is signed in. On a 401 the frontend sends the browser to the sign-in page, which returns it here afterwards:
+
+```ts
+import { api, loginUrl } from './api'
+
+const res = await api('/notes')
+if (res.status === 401) location.assign(loginUrl())
+```
+
+`currentUser(req)` returns the user or `null`, for routes that work either way. Locally there's no auth service: `AUTH_DEV_USER` in `backend/.env` signs you in as that name, and removing it signs you out. Accounts are invite-only; see auth's README.
+
 ## Database migrations
 
 ```bash
