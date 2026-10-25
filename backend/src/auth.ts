@@ -1,9 +1,15 @@
 import type { Request, RequestHandler } from "express";
+import { APP } from "./paths.js";
 
 // Who is signed in, from the shared passkey sign-in service
 // (github.com/waynezhu6/auth). Its session cookie is sent to every app on the
 // domain; this backend passes it on to the service over the server's internal
 // network, which answers with the user or 401.
+//
+// Callers that can't sign in (scripts, other servers) send an API key instead,
+// as "Authorization: Bearer wz_<app>_...", made on the auth service's admin
+// page for this app. It's passed on the same way, with this app's name, and
+// the service answers with the key's owner only if the key is for this app.
 //
 // Locally there's no auth service: set AUTH_DEV_USER in backend/.env to be
 // signed in as that name, or leave it unset to be signed out.
@@ -14,14 +20,18 @@ export interface User {
   /** Stable for the account's lifetime. Key your data on this. */
   id: string;
   name: string;
+  /** Set when the caller used an API key rather than signing in: the key's name. */
+  key?: string;
 }
 
 /** The signed-in user, or null. Throws if the auth service can't be reached. */
 export async function currentUser(req: Request): Promise<User | null> {
   if (DEV_USER) return { id: `dev-${DEV_USER}`, name: DEV_USER };
-  const cookie = req.headers.cookie;
-  if (!cookie) return null;
-  const res = await fetch(`${AUTH_URL}/api/verify`, { headers: { cookie }, signal: AbortSignal.timeout(5000) });
+  const { authorization, cookie } = req.headers;
+  // A request with a key is judged on the key alone.
+  const headers = authorization ? { authorization } : cookie ? { cookie } : null;
+  if (!headers) return null;
+  const res = await fetch(`${AUTH_URL}/api/verify?app=${encodeURIComponent(APP)}`, { headers, signal: AbortSignal.timeout(5000) });
   if (res.status === 401) return null;
   if (!res.ok) throw new Error(`auth service answered ${res.status}`);
   return (await res.json()) as User;
